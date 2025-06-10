@@ -1,6 +1,6 @@
 # Flask API with Docker and Kubernetes Deployment
 
-This is a sample Flask API that is containerized using Docker and can be automatically deployed to a Kubernetes cluster using GitHub Actions.
+This is a sample Flask API that is containerized using Docker and can be automatically deployed to a Kubernetes cluster using GitHub Actions. It also features a GraphQL endpoint.
 
 ## Prerequisites
 
@@ -11,8 +11,51 @@ This is a sample Flask API that is containerized using Docker and can be automat
 
 ## Application Details
 
--   **API Endpoint**: `GET /` returns `{"message": "Hello, World!"}`
+-   **REST API Endpoint**: `GET /` returns a welcome message: `{"message": "Hello, World! Visit /graphql for the GraphQL API."}`
+-   **GraphQL API Endpoint**: `POST /graphql` for GraphQL queries (also accessible via GET for GraphiQL).
 -   **Application Port**: The application inside the container runs on port 5000 (configurable via the `PORT` environment variable in the Dockerfile).
+
+## GraphQL API
+
+This application also provides a GraphQL API endpoint for more flexible data querying.
+
+-   **Endpoint**: `/graphql`
+-   **GraphiQL**: An interactive GraphQL IDE, GraphiQL, is enabled and accessible by navigating to `/graphql` in your browser. You can use it to explore the schema and test queries.
+
+### Example Queries
+
+Here are a few examples of queries you can run:
+
+1.  **Fetch all users (ID and Name):**
+    ```graphql
+    query {
+      allUsers {
+        id
+        name
+      }
+    }
+    ```
+
+2.  **Fetch a specific user by ID (Name and Email):**
+    ```graphql
+    query {
+      user(id: "1") {
+        name
+        email
+      }
+    }
+    ```
+
+3.  **Fetch user by ID (demonstrating an alias for a field):**
+    ```graphql
+    query {
+      specificUser: user(id: "2") {
+        identifier: id
+        fullName: name
+        contactEmail: email
+      }
+    }
+    ```
 
 ## Local Docker Build & Run
 
