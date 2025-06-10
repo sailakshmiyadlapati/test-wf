@@ -1,4 +1,4 @@
-name: Deploy to Heroku
+name: Build and Deploy to Kubernetes
 
 on:
   push:
@@ -10,19 +10,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Updated to v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          python-version: '3.9'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.12.12
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
         with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
-          heroku_email: action@github.com
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/my-flask-app:${{ github.sha }} # Example tag, user should customize image name
+
+      - name: Set up Kubeconfig
+        uses: azure/k8s-setup-kubeconfig@v3 # Using azure action as it's common, alternative is manual setup
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG_DATA }}
+
+      - name: Update Kubernetes deployment image
+        run: |
+          sed -i "s|image: YOUR_DOCKER_USERNAME/YOUR_FLASK_APP_IMAGE:latest|image: ${{ secrets.DOCKER_USERNAME }}/my-flask-app:${{ github.sha }}|g" k8s/deployment.yaml
+          # Verify the change (optional, good for debugging)
+          cat k8s/deployment.yaml
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
